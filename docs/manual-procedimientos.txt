@@ -1,0 +1,30 @@
+MANUAL DE PROCEDIMIENTOS IT - EMPRESA CLIENTE (EJEMPLO)
+
+## RESETEO DE CONTRASEÑAS
+Portal de autoservicio: https://portal-interno.empresa-cliente.com/reset
+Pasos:
+1. El usuario accede al portal con su correo corporativo.
+2. El sistema envía un código de verificación por SMS al número registrado.
+3. El usuario introduce el código y define una nueva contraseña.
+4. Requisitos de contraseña: mínimo 10 caracteres, 1 mayúscula, 1 número, 1 símbolo.
+5. Si no recibe el SMS en 5 minutos, debe contactar a RRHH para verificar su número registrado (no es un problema de IT).
+
+## PROBLEMAS DE CONEXIÓN A INTERNET
+Procedimiento estándar de la empresa:
+1. Verificar en el panel de estado (status.empresa-cliente.com) si hay una incidencia general reportada.
+2. Si no hay incidencia general, pedir al usuario reiniciar el adaptador de red desde el Panel de Control (NO el router, los routers son gestionados centralmente por IT y no deben reiniciarse manualmente).
+3. Si persiste, crear ticket con prioridad "Media" y adjuntar captura del error exacto.
+4. Incidencias que afectan a más de 3 personas simultáneamente se escalan automáticamente como "Incidente Mayor".
+
+## ACCESO A CARPETAS COMPARTIDAS
+1. El usuario debe rellenar el formulario "Solicitud de Acceso" en la intranet (intranet.empresa-cliente.com/accesos).
+2. Requiere aprobación de su responsable directo.
+3. Tiempo estándar de aprobación: 24-48h laborables.
+4. IT no puede otorgar accesos sin esta aprobación, sin excepción.
+
+## VPN CORPORATIVA
+Cliente utilizado: GlobalProtect.
+Si la VPN no conecta:
+1. Verificar que el usuario tiene el certificado actualizado (caduca cada 6 meses).
+2. Si el certificado está caducado, debe solicitarlo en intranet.empresa-cliente.com/certificados.
+3. IT no puede generar certificados manualmente por política de seguridad.
