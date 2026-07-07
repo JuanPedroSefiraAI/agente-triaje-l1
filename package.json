@@ -1,0 +1,15 @@
+{
+  "name": "soporte-tecnico-agente",
+  "version": "1.0.0",
+  "description": "Agente de soporte tecnico autonomo (Nivel 1) con Express y frontend vanilla JS",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "express": "^4.19.2"
+  }
+}

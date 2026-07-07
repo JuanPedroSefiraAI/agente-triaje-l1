@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agente de Soporte Tecnico</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="chat-app">
+    <header class="chat-header">
+      <h1>Soporte Tecnico - Nivel 1</h1>
+      <p>Agente automatico de asistencia</p>
+    </header>
+
+    <section id="chat-history" class="chat-history" aria-live="polite"></section>
+
+    <form id="chat-form" class="chat-form">
+      <input
+        id="chat-input"
+        type="text"
+        placeholder="Escribi tu consulta..."
+        autocomplete="off"
+        required
+      />
+      <button type="submit">Enviar</button>
+    </form>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
