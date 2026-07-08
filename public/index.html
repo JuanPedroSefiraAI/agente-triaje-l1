@@ -3,14 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agente de Soporte Tecnico</title>
+  <title>Sefira AI · Soporte IT</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="chat-app">
     <header class="chat-header">
-      <h1>Soporte Tecnico - Nivel 1</h1>
-      <p>Agente automatico de asistencia</p>
+      <div class="chat-header-info">
+        <div class="logo-row">
+          <span class="header-logo-wrap">
+            <img class="header-logo" src="SefiraAI_logo.png" alt="Sefira AI" />
+          </span>
+          <span class="header-subtitle">Soporte IT</span>
+        </div>
+        <div class="status">
+          <span class="status-dot"></span>
+          <span>En línea</span>
+        </div>
+      </div>
     </header>
 
     <section id="chat-history" class="chat-history" aria-live="polite"></section>
@@ -19,11 +29,16 @@
       <input
         id="chat-input"
         type="text"
-        placeholder="Escribi tu consulta..."
+        placeholder="Escribí tu consulta..."
         autocomplete="off"
         required
       />
-      <button type="submit">Enviar</button>
+      <button type="submit" aria-label="Enviar mensaje">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
     </form>
   </main>
 
