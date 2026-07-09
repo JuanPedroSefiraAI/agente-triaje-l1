@@ -1,18 +1,67 @@
 const form = document.getElementById('chat-form');
 const input = document.getElementById('chat-input');
 const history = document.getElementById('chat-history');
+const newChatBtn = document.getElementById('new-chat-btn');
+
+const STORAGE_KEY = 'sefira_chat_history';
+
+function loadStoredMessages() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveStoredMessages(messages) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  } catch (err) {
+    // localStorage no disponible (modo privado, cuota, etc.): se ignora.
+  }
+}
+
+let storedMessages = loadStoredMessages();
 
 function scrollToBottom() {
   history.scrollTop = history.scrollHeight;
 }
 
-function appendMessage(text, role) {
+function appendMessage(text, role, options = {}) {
+  const { persist = true } = options;
   const el = document.createElement('div');
   el.className = `message ${role}`;
   el.textContent = text;
   history.appendChild(el);
+
+  if (persist) {
+    storedMessages.push({ text, role });
+    saveStoredMessages(storedMessages);
+  }
+
   scrollToBottom();
 }
+
+function renderStoredMessages() {
+  if (!storedMessages.length) return;
+  for (const msg of storedMessages) {
+    appendMessage(msg.text, msg.role, { persist: false });
+  }
+  scrollToBottom();
+}
+
+function startNewConversation() {
+  storedMessages = [];
+  saveStoredMessages(storedMessages);
+  history.innerHTML = '';
+}
+
+renderStoredMessages();
+
+newChatBtn.addEventListener('click', () => {
+  startNewConversation();
+});
 
 function showTypingIndicator() {
   const el = document.createElement('div');
