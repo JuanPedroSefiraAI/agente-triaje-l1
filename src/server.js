@@ -10,6 +10,10 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', chatRouter);
 
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sefira AI · Dashboard Administrador</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <main class="dashboard-app">
+    <header class="dashboard-header">
+      <div class="dashboard-header-info">
+        <div class="logo-row">
+          <span class="header-logo-wrap">
+            <img class="header-logo" src="SefiraAI_logo.png" alt="Sefira AI" />
+          </span>
+          <span class="header-subtitle">Dashboard Administrador</span>
+        </div>
+        <span class="demo-badge">⚠ Datos de demostración — no son datos reales de producción</span>
+      </div>
+      <a href="/" class="back-link" title="Volver al chat de soporte">← Volver al chat</a>
+    </header>
+
+    <section class="summary-bar" id="summary-bar" aria-live="polite"></section>
+
+    <section class="conversations-list" id="conversations-list"></section>
+  </main>
+
+  <script src="mockConversations.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
