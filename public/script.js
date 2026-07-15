@@ -91,6 +91,31 @@ function isConnectivityTrigger(message) {
   return CONNECTIVITY_TRIGGER_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
+// Palabras clave de otros temas frecuentes (contraseña, accesos) que, si
+// aparecen junto al trigger de conexión, indican que el usuario reporta
+// varias incidencias a la vez y no solo un problema de conexión.
+const OTHER_ISSUE_PATTERNS = [
+  /\bcontrasena/,
+  /\bpassword\b/,
+  /\bolvide\b/,
+  /\bolvido\b/,
+  /\bacceso a\b/,
+  /\baccesos\b/,
+  /\bpermiso[s]? (a|para|de)\b/,
+  /\bcarpeta[s]?\b/,
+];
+
+// Conectores que suelen introducir un problema adicional en el mismo mensaje.
+const MULTI_ISSUE_CONNECTORS = [/\bademas\b/, /\btambien\b/, /\by (encima|tampoco)\b/];
+
+function hasOtherIssuesBesidesConnectivity(message) {
+  const normalized = normalizeForMatch(message);
+  return (
+    OTHER_ISSUE_PATTERNS.some((pattern) => pattern.test(normalized)) ||
+    MULTI_ISSUE_CONNECTORS.some((pattern) => pattern.test(normalized))
+  );
+}
+
 const CONNECTIVITY_DIAGNOSTIC_STEPS = [
   { icon: '⏳', text: 'Comprobando estado de la red local...', status: 'pending' },
   { icon: '✅', text: 'Conexión local: OK', status: 'ok' },
@@ -153,12 +178,19 @@ form.addEventListener('submit', async (event) => {
   input.value = '';
   input.disabled = true;
 
-  if (isConnectivityTrigger(message)) {
+  const connectivityIsMainIssue = isConnectivityTrigger(message) && !hasOtherIssuesBesidesConnectivity(message);
+
+  if (connectivityIsMainIssue) {
     await runConnectivityDiagnostic();
     input.disabled = false;
     input.focus();
     return;
   }
+
+  // Si el trigger de conexión saltó pero el mensaje trae más incidencias,
+  // se avisa al backend para que el agente las reconozca todas en vez de
+  // quedarse solo con la de conexión.
+  const multipleIssues = isConnectivityTrigger(message) && hasOtherIssuesBesidesConnectivity(message);
 
   showTypingIndicator();
 
@@ -166,7 +198,7 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, multipleIssues }),
     });
 
     if (!response.ok) {

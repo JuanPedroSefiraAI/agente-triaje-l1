@@ -25,8 +25,19 @@ ${contextBody}
 - No mezcles el contexto oficial con suposiciones "razonables": si no está en el contexto, no lo afirmes.`;
 }
 
-async function getAgentReply(message) {
-  const system = `${systemPrompt}\n\n${buildRagContext(message)}`;
+// Se antepone cuando el front-end detecta que el mensaje dispara el trigger
+// de conexión PERO además trae otras incidencias: evita que el agente se
+// quede solo con el problema de conexión al construir su respuesta.
+const MULTIPLE_ISSUES_NOTE = `## AVISO: MENSAJE CON VARIAS INCIDENCIAS
+El usuario ha reportado en este mismo mensaje un posible problema de
+conexión junto con, al menos, otra incidencia distinta. Reconoce
+explícitamente TODAS las incidencias mencionadas (aunque sea en una
+lista breve) antes de resolver o escalar cada una por separado.`;
+
+async function getAgentReply(message, { multipleIssues = false } = {}) {
+  const system = [systemPrompt, multipleIssues ? MULTIPLE_ISSUES_NOTE : null, buildRagContext(message)]
+    .filter(Boolean)
+    .join('\n\n');
 
   const response = await client.messages.create({
     model: MODEL,

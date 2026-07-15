@@ -5,14 +5,14 @@ const { getAgentReply } = require('../claudeAgent');
 const router = express.Router();
 
 router.post('/chat', async (req, res) => {
-  const { message } = req.body || {};
+  const { message, multipleIssues } = req.body || {};
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'El campo "message" es requerido.' });
   }
 
   try {
-    const reply = await getAgentReply(message);
+    const reply = await getAgentReply(message, { multipleIssues: Boolean(multipleIssues) });
     res.json({ reply });
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) {
