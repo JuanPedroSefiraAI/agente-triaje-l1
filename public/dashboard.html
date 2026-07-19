@@ -21,9 +21,19 @@
       <a href="/" class="back-link" title="Volver al chat de soporte">← Volver al chat</a>
     </header>
 
-    <section class="summary-bar" id="summary-bar" aria-live="polite"></section>
+    <section class="kpi-section" id="summary-bar" aria-live="polite"></section>
 
-    <section class="conversations-list" id="conversations-list"></section>
+    <section class="conversations-panel">
+      <div class="conversations-panel-title">Conversaciones recientes</div>
+      <div class="conversation-columns" role="row">
+        <span>Usuario</span>
+        <span>Resumen</span>
+        <span class="col-center">Urgencia</span>
+        <span class="col-center">Estado</span>
+        <span class="col-right">Hace</span>
+      </div>
+      <div class="conversations-list" id="conversations-list"></div>
+    </section>
   </main>
 
   <script src="mockConversations.js"></script>
