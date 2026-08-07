@@ -13,13 +13,37 @@ const URGENCY_CLASS = {
 };
 
 // Iconos mínimos (forma + color) para que la urgencia no dependa solo del color.
-const URGENCY_ICON = {
+// Son constantes fijas del propio código (no datos de conversación), por eso
+// es seguro parsearlas como HTML: nunca contienen texto proveniente de terceros.
+const URGENCY_ICON_MARKUP = {
   Alta: '<svg class="urgency-icon" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0L8 8H0Z" fill="currentColor"/></svg>',
   Media: '<svg class="urgency-icon" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><rect x="0.5" y="0.5" width="7" height="7" fill="currentColor"/></svg>',
   Baja: '<svg class="urgency-icon" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>',
 };
 
 const RESPUESTA_MEDIA_MOCK = '2.4 min';
+
+function el(tag, { className, text } = {}) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// Construye el icono de urgencia a partir de markup fijo y confiable (ver
+// URGENCY_ICON_MARKUP), nunca a partir de datos de la conversación.
+function buildUrgencyIcon(urgency) {
+  const template = document.createElement('template');
+  template.innerHTML = URGENCY_ICON_MARKUP[urgency] || '';
+  return template.content.firstChild;
+}
+
+function kpiCard(className, value, label) {
+  const card = el('div', { className: `kpi-card ${className}` });
+  card.appendChild(el('span', { className: 'kpi-value', text: value }));
+  card.appendChild(el('span', { className: 'kpi-label', text: label }));
+  return card;
+}
 
 function renderSummaryBar(conversations) {
   const total = conversations.length;
@@ -30,26 +54,37 @@ function renderSummaryBar(conversations) {
   ).length;
 
   const bar = document.getElementById('summary-bar');
-  bar.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi-card kpi-total">
-        <span class="kpi-value">${total}</span>
-        <span class="kpi-label">Conversaciones totales</span>
-      </div>
-      <div class="kpi-card kpi-resolved">
-        <span class="kpi-value">${resueltoPct}%</span>
-        <span class="kpi-label">Resuelto por IA</span>
-      </div>
-      <div class="kpi-card kpi-urgent">
-        <span class="kpi-value">${urgentesActivas}</span>
-        <span class="kpi-label">Urgentes activas</span>
-      </div>
-      <div class="kpi-card kpi-time">
-        <span class="kpi-value">${RESPUESTA_MEDIA_MOCK}</span>
-        <span class="kpi-label">Tiempo medio de respuesta</span>
-      </div>
-    </div>
-  `;
+  bar.textContent = '';
+
+  const grid = el('div', { className: 'kpi-grid' });
+  grid.appendChild(kpiCard('kpi-total', String(total), 'Conversaciones totales'));
+  grid.appendChild(kpiCard('kpi-resolved', `${resueltoPct}%`, 'Resuelto por IA'));
+  grid.appendChild(kpiCard('kpi-urgent', String(urgentesActivas), 'Urgentes activas'));
+  grid.appendChild(kpiCard('kpi-time', RESPUESTA_MEDIA_MOCK, 'Tiempo medio de respuesta'));
+  bar.appendChild(grid);
+}
+
+// Todo el texto proveniente de `c` (user, summary, urgency, status, time) se
+// inserta vía textContent: si en el futuro estos campos llegan a venir de
+// conversaciones reales de usuarios, siguen sin poder inyectar HTML/JS.
+function conversationRow(c) {
+  const article = el('article', { className: 'conversation-row' });
+
+  article.appendChild(el('span', { className: 'conversation-user', text: c.user }));
+  article.appendChild(el('p', { className: 'conversation-summary', text: c.summary }));
+
+  const urgencyBadge = el('span', { className: `badge urgency-badge ${URGENCY_CLASS[c.urgency]}` });
+  const icon = buildUrgencyIcon(c.urgency);
+  if (icon) urgencyBadge.appendChild(icon);
+  urgencyBadge.appendChild(document.createTextNode(c.urgency));
+  article.appendChild(urgencyBadge);
+
+  article.appendChild(
+    el('span', { className: `badge status-badge ${STATUS_CLASS[c.status]}`, text: c.status })
+  );
+  article.appendChild(el('span', { className: 'conversation-time', text: c.time }));
+
+  return article;
 }
 
 function renderConversations(conversations) {
@@ -58,19 +93,10 @@ function renderConversations(conversations) {
     (a, b) => URGENCY_WEIGHT[b.urgency] - URGENCY_WEIGHT[a.urgency]
   );
 
-  list.innerHTML = sorted
-    .map(
-      (c) => `
-    <article class="conversation-row">
-      <span class="conversation-user">${c.user}</span>
-      <p class="conversation-summary">${c.summary}</p>
-      <span class="badge urgency-badge ${URGENCY_CLASS[c.urgency]}">${URGENCY_ICON[c.urgency]}${c.urgency}</span>
-      <span class="badge status-badge ${STATUS_CLASS[c.status]}">${c.status}</span>
-      <span class="conversation-time">${c.time}</span>
-    </article>
-  `
-    )
-    .join('');
+  list.textContent = '';
+  for (const c of sorted) {
+    list.appendChild(conversationRow(c));
+  }
 }
 
 renderSummaryBar(MOCK_CONVERSATIONS);
