@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
 const { getAgentReply } = require('../claudeAgent');
+const { createFreshdeskTicket } = require('../freshdeskClient');
 
 const router = express.Router();
 
@@ -31,7 +32,18 @@ router.post('/chat', chatRateLimiter, async (req, res) => {
   }
 
   try {
-    const reply = await getAgentReply(message, { multipleIssues: Boolean(multipleIssues) });
+    const { reply, escalation } = await getAgentReply(message, { multipleIssues: Boolean(multipleIssues) });
+
+    if (escalation) {
+      try {
+        await createFreshdeskTicket(escalation.subject, escalation.summary, escalation.priority);
+      } catch (freshdeskErr) {
+        // Un fallo en la integración externa (credenciales ausentes, Freshdesk caído, etc.)
+        // nunca debe interrumpir la experiencia del usuario en el chat.
+        console.error('No se pudo crear el ticket en Freshdesk.', freshdeskErr.message);
+      }
+    }
+
     res.json({ reply });
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) {

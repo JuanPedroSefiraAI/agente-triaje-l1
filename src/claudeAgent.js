@@ -34,8 +34,49 @@ conexión junto con, al menos, otra incidencia distinta. Reconoce
 explícitamente TODAS las incidencias mencionadas (aunque sea en una
 lista breve) antes de resolver o escalar cada una por separado.`;
 
+const ESCALATION_TOOL_NOTE = `## HERRAMIENTA DE ESCALADO A NIVEL 2
+Cuando decidas escalar la consulta a soporte Nivel 2 (según los criterios
+de la sección "CUÁNDO ESCALAR"), además de tu respuesta habitual al
+usuario, invoca la herramienta "escalar_a_nivel2" con un resumen del
+problema para el equipo humano. Si no vas a escalar, no la uses.`;
+
+// Herramienta que el modelo invoca cuando decide escalar, para separar el
+// resumen estructurado (destinado a Nivel 2 / Freshdesk) del mensaje en
+// lenguaje natural que se muestra al usuario en el chat.
+const ESCALATION_TOOL = {
+  name: 'escalar_a_nivel2',
+  description:
+    'Crea un ticket de soporte Nivel 2 para que un humano continúe la conversación. ' +
+    'Llámala únicamente cuando, según los criterios de "CUÁNDO ESCALAR" del system prompt, decidas escalar la consulta.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      subject: {
+        type: 'string',
+        description: 'Título breve del problema (máx. 100 caracteres) para el asunto del ticket.',
+      },
+      summary: {
+        type: 'string',
+        description:
+          'Resumen del problema y de lo ya intentado, para que el equipo de Nivel 2 no tenga que volver a preguntar todo.',
+      },
+      priority: {
+        type: 'integer',
+        enum: [1, 2, 3, 4],
+        description: '1 = Baja, 2 = Media, 3 = Alta, 4 = Urgente.',
+      },
+    },
+    required: ['subject', 'summary'],
+  },
+};
+
 async function getAgentReply(message, { multipleIssues = false } = {}) {
-  const system = [systemPrompt, multipleIssues ? MULTIPLE_ISSUES_NOTE : null, buildRagContext(message)]
+  const system = [
+    systemPrompt,
+    multipleIssues ? MULTIPLE_ISSUES_NOTE : null,
+    ESCALATION_TOOL_NOTE,
+    buildRagContext(message),
+  ]
     .filter(Boolean)
     .join('\n\n');
 
@@ -43,6 +84,7 @@ async function getAgentReply(message, { multipleIssues = false } = {}) {
     model: MODEL,
     max_tokens: 1024,
     system,
+    tools: [ESCALATION_TOOL],
     messages: [{ role: 'user', content: message }],
   });
 
@@ -51,7 +93,19 @@ async function getAgentReply(message, { multipleIssues = false } = {}) {
   }
 
   const textBlock = response.content.find((block) => block.type === 'text');
-  return textBlock ? textBlock.text : '';
+  const escalationBlock = response.content.find(
+    (block) => block.type === 'tool_use' && block.name === 'escalar_a_nivel2'
+  );
+
+  const escalation = escalationBlock
+    ? {
+        subject: escalationBlock.input.subject,
+        summary: escalationBlock.input.summary,
+        priority: escalationBlock.input.priority,
+      }
+    : null;
+
+  return { reply: textBlock ? textBlock.text : '', escalation };
 }
 
 module.exports = { getAgentReply };
