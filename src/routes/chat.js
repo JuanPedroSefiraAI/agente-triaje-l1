@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
 const { getAgentReply } = require('../claudeAgent');
 const { createFreshdeskTicket } = require('../freshdeskClient');
+const ticketStore = require('../ticketStore');
 
 const router = express.Router();
 
@@ -35,12 +36,30 @@ router.post('/chat', chatRateLimiter, async (req, res) => {
     const { reply, escalation } = await getAgentReply(message, { multipleIssues: Boolean(multipleIssues) });
 
     if (escalation) {
+      const ticketBase = {
+        subject: escalation.subject,
+        summary: escalation.summary,
+        priority: escalation.priority ?? 2,
+        status: 'Abierto',
+      };
+
       try {
-        await createFreshdeskTicket(escalation.subject, escalation.summary, escalation.priority);
+        const freshdeskTicket = await createFreshdeskTicket(
+          escalation.subject,
+          escalation.summary,
+          escalation.priority
+        );
+        await ticketStore.saveTicket({ ...ticketBase, source: 'freshdesk', freshdeskId: freshdeskTicket.id });
       } catch (freshdeskErr) {
         // Un fallo en la integración externa (credenciales ausentes, Freshdesk caído, etc.)
-        // nunca debe interrumpir la experiencia del usuario en el chat.
-        console.error('No se pudo crear el ticket en Freshdesk.', freshdeskErr.message);
+        // nunca debe interrumpir la experiencia del usuario en el chat: el ticket se guarda
+        // como respaldo local para que no se pierda, y se muestra igualmente en el dashboard.
+        console.error('No se pudo crear el ticket en Freshdesk; se guarda como respaldo local.', freshdeskErr.message);
+        try {
+          await ticketStore.saveTicket({ ...ticketBase, source: 'local', freshdeskId: null });
+        } catch (storeErr) {
+          console.error('No se pudo guardar el ticket de respaldo local.', storeErr.message);
+        }
       }
     }
 

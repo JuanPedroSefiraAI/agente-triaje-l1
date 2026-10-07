@@ -23,6 +23,14 @@ const URGENCY_ICON_MARKUP = {
 
 const RESPUESTA_MEDIA_MOCK = '2.4 min';
 
+const PRIORITY_LABEL = { 1: 'Baja', 2: 'Media', 3: 'Alta', 4: 'Urgente' };
+const PRIORITY_URGENCY_CLASS = {
+  1: 'urgency-baja',
+  2: 'urgency-media',
+  3: 'urgency-alta',
+  4: 'urgency-urgente',
+};
+
 function el(tag, { className, text } = {}) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -87,6 +95,86 @@ function conversationRow(c) {
   return article;
 }
 
+// Los tickets reales traen `createdAt` en ISO (a diferencia del campo `time`
+// ya formateado de las conversaciones mock), así que necesitan su propio
+// formateo relativo.
+function formatRelativeTime(isoDate) {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const diffMin = Math.max(0, Math.round(diffMs / 60000));
+
+  if (diffMin < 1) return 'hace un momento';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+
+  const diffHours = Math.round(diffMin / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `hace ${diffDays} d`;
+}
+
+// Todo el texto proveniente de `t` (subject, summary, status) se inserta vía
+// textContent, igual que en conversationRow: son datos reales de tickets
+// escalados, nunca HTML/JS de confianza.
+function ticketRow(t) {
+  const article = el('article', { className: 'ticket-row' });
+
+  article.appendChild(el('span', { className: 'ticket-subject', text: t.subject }));
+  article.appendChild(el('p', { className: 'ticket-summary', text: t.summary }));
+
+  const priorityLabel = PRIORITY_LABEL[t.priority] || 'Media';
+  const priorityBadge = el('span', {
+    className: `badge urgency-badge ${PRIORITY_URGENCY_CLASS[t.priority] || 'urgency-media'}`,
+    text: priorityLabel,
+  });
+  article.appendChild(priorityBadge);
+
+  article.appendChild(el('span', { className: 'badge status-badge status-escalado', text: t.status }));
+
+  const isLocal = t.source === 'local';
+  article.appendChild(
+    el('span', {
+      className: `source-tag ${isLocal ? 'source-local' : 'source-freshdesk'}`,
+      text: isLocal ? 'Local (respaldo)' : 'Freshdesk',
+    })
+  );
+
+  article.appendChild(el('span', { className: 'ticket-time', text: formatRelativeTime(t.createdAt) }));
+
+  return article;
+}
+
+function renderTickets(tickets) {
+  const list = document.getElementById('tickets-list');
+  list.textContent = '';
+
+  if (!tickets.length) {
+    list.appendChild(
+      el('div', { className: 'tickets-empty', text: 'No hay tickets escalados por el momento.' })
+    );
+    return;
+  }
+
+  for (const t of tickets) {
+    list.appendChild(ticketRow(t));
+  }
+}
+
+async function loadTickets() {
+  try {
+    const response = await fetch('/api/tickets');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { tickets } = await response.json();
+    renderTickets(tickets);
+  } catch (err) {
+    const list = document.getElementById('tickets-list');
+    list.textContent = '';
+    list.appendChild(
+      el('div', { className: 'tickets-empty', text: 'No se pudieron cargar los tickets reales.' })
+    );
+    console.error('No se pudieron cargar los tickets.', err);
+  }
+}
+
 function renderConversations(conversations) {
   const list = document.getElementById('conversations-list');
   const sorted = [...conversations].sort(
@@ -101,3 +189,4 @@ function renderConversations(conversations) {
 
 renderSummaryBar(MOCK_CONVERSATIONS);
 renderConversations(MOCK_CONVERSATIONS);
+loadTickets();

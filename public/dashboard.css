@@ -193,6 +193,134 @@ body {
   color: var(--gold);
 }
 
+/* ---------- Panel tags (real vs demo) ---------- */
+
+.panel-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.panel-tag-real {
+  background: var(--resuelto-bg);
+  color: var(--resuelto-text);
+}
+
+.panel-tag-demo {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold);
+}
+
+/* ---------- Tickets escalados (datos reales) ---------- */
+
+.tickets-panel {
+  margin: 20px 28px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 10px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.tickets-columns,
+.ticket-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 90px 130px 110px 90px;
+  gap: 16px;
+  align-items: center;
+}
+
+.tickets-columns {
+  padding: 10px 28px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tickets-columns .col-center {
+  text-align: center;
+}
+
+.tickets-columns .col-right {
+  text-align: right;
+}
+
+.tickets-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-row {
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.12s ease;
+}
+
+.ticket-row:hover {
+  background-color: var(--surface-subtle);
+}
+
+.ticket-row:last-child {
+  border-bottom: none;
+}
+
+.ticket-subject {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--navy);
+}
+
+.ticket-summary {
+  margin: 0;
+  font-size: 0.87rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ticket-time {
+  font-size: 0.76rem;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.tickets-empty {
+  padding: 20px 28px;
+  font-size: 0.85rem;
+  color: var(--text-faint);
+}
+
+/* Indicador discreto de origen del ticket (Freshdesk / respaldo local): a
+   propósito es texto plano sin fondo, para no competir visualmente con los
+   badges de prioridad/estado. */
+.source-tag {
+  justify-self: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.source-tag.source-local {
+  color: var(--gold);
+}
+
+.urgency-badge.urgency-urgente {
+  background: var(--escalado-bg);
+  color: var(--escalado-text);
+  border: 1px solid var(--escalado-bg);
+}
+
 /* ---------- Conversations table ---------- */
 
 .conversations-panel {
@@ -354,12 +482,55 @@ body {
     margin: 16px 16px 16px;
   }
 
+  .tickets-panel {
+    margin: 16px 16px 0;
+  }
+
   .conversations-panel-title {
     padding: 12px 16px;
   }
 
-  .conversation-columns {
+  .conversation-columns,
+  .tickets-columns {
     display: none;
+  }
+
+  .ticket-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "subject time"
+      "summary summary"
+      "priority status"
+      "source source";
+    row-gap: 6px;
+    padding: 14px 16px;
+  }
+
+  .ticket-row > *:nth-child(1) {
+    grid-area: subject;
+  }
+
+  .ticket-row > *:nth-child(2) {
+    grid-area: summary;
+  }
+
+  .ticket-row > *:nth-child(3) {
+    grid-area: priority;
+    justify-self: start;
+  }
+
+  .ticket-row > *:nth-child(4) {
+    grid-area: status;
+    justify-self: start;
+  }
+
+  .ticket-row > *:nth-child(5) {
+    grid-area: source;
+    justify-self: start;
+  }
+
+  .ticket-row > *:nth-child(6) {
+    grid-area: time;
   }
 
   .conversation-row {
