@@ -24,13 +24,20 @@ create index if not exists conversation_messages_conv_idx
 
 -- Mantiene conversations.last_message_at al día cada vez que se inserta un
 -- mensaje, sin que el backend tenga que hacer un UPDATE aparte.
+-- search_path = '' + nombres con esquema: evita que la función resuelva
+-- `conversations` contra un objeto de otro esquema que alguien con permiso
+-- de CREATE haya colado antes en el search_path (hardening recomendado por
+-- el linter de Supabase para funciones SECURITY DEFINER/trigger).
 create or replace function touch_conversation_last_message()
-returns trigger as $$
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
-  update conversations set last_message_at = now() where id = new.conversation_id;
+  update public.conversations set last_message_at = now() where id = new.conversation_id;
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists conversation_messages_touch on conversation_messages;
 create trigger conversation_messages_touch
