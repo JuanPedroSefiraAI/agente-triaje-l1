@@ -21,7 +21,7 @@ ${contextBody}
 
 ## INSTRUCCIONES SOBRE EL USO DEL CONTEXTO OFICIAL
 - Responde ÚNICAMENTE con base en el CONTEXTO OFICIAL de arriba. No completes huecos con conocimiento general ni supongas procedimientos, URLs o plazos que no estén ahí.
-- Si el contexto indica que no se encontró información relevante, o si no cubre lo que pregunta el usuario, dilo con claridad y escala a soporte Nivel 2 en vez de inventar una respuesta.
+- Si el contexto indica que no se encontró información relevante, o si no cubre lo que pregunta el usuario, no inventes un procedimiento, política, URL o plazo que no esté documentado aquí. Esto no te impide hacer el triaje básico ni proponer comprobaciones genéricas de sentido común (ver "CUÁNDO ESCALAR" del system prompt); solo evita que inventes una solución específica no respaldada por este contexto oficial.
 - No mezcles el contexto oficial con suposiciones "razonables": si no está en el contexto, no lo afirmes.`;
 }
 
@@ -36,9 +36,10 @@ lista breve) antes de resolver o escalar cada una por separado.`;
 
 const ESCALATION_TOOL_NOTE = `## HERRAMIENTA DE ESCALADO A NIVEL 2
 Cuando decidas escalar la consulta a soporte Nivel 2 (según los criterios
-de la sección "CUÁNDO ESCALAR"), además de tu respuesta habitual al
-usuario, invoca la herramienta "escalar_a_nivel2" con un resumen del
-problema para el equipo humano. Si no vas a escalar, no la uses.`;
+y el triaje previo de la sección "CUÁNDO ESCALAR"), además de tu
+respuesta habitual al usuario, invoca la herramienta "escalar_a_nivel2"
+con un resumen del problema para el equipo humano. Si no vas a escalar,
+no la uses.`;
 
 // Herramienta que el modelo invoca cuando decide escalar, para separar el
 // resumen estructurado (destinado a Nivel 2 / Freshdesk) del mensaje en
@@ -58,7 +59,7 @@ const ESCALATION_TOOL = {
       summary: {
         type: 'string',
         description:
-          'Resumen del problema y de lo ya intentado, para que el equipo de Nivel 2 no tenga que volver a preguntar todo.',
+          'Resumen del problema, incluyendo las respuestas del triaje básico (desde cuándo ocurre, a quién afecta, qué se ha probado) y cualquier comprobación ya realizada, para que el equipo de Nivel 2 no tenga que volver a preguntar todo.',
       },
       priority: {
         type: 'integer',
@@ -70,7 +71,7 @@ const ESCALATION_TOOL = {
   },
 };
 
-async function getAgentReply(message, { multipleIssues = false } = {}) {
+async function getAgentReply(message, { multipleIssues = false, history = [] } = {}) {
   const system = [
     systemPrompt,
     multipleIssues ? MULTIPLE_ISSUES_NOTE : null,
@@ -85,7 +86,7 @@ async function getAgentReply(message, { multipleIssues = false } = {}) {
     max_tokens: 1024,
     system,
     tools: [ESCALATION_TOOL],
-    messages: [{ role: 'user', content: message }],
+    messages: [...history, { role: 'user', content: message }],
   });
 
   if (response.stop_reason === 'refusal') {

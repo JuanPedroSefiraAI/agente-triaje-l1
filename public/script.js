@@ -24,6 +24,11 @@ function saveStoredMessages(messages) {
 
 let storedMessages = loadStoredMessages();
 
+// El historial real de la conversación vive en el servidor (ver
+// src/session.js y src/conversationStore), asociado a la cookie de sesión
+// httpOnly que el navegador manda solo. `storedMessages`/localStorage aquí
+// son solo para repintar la conversación si el usuario refresca la página;
+// el backend nunca los lee.
 function scrollToBottom() {
   history.scrollTop = history.scrollHeight;
 }
@@ -59,8 +64,16 @@ function startNewConversation() {
 
 renderStoredMessages();
 
-newChatBtn.addEventListener('click', () => {
+newChatBtn.addEventListener('click', async () => {
   startNewConversation();
+  try {
+    // Rota la sesión en el servidor para que el siguiente mensaje empiece
+    // una conversación nueva en vez de seguir la anterior.
+    await fetch('/api/chat/new-session', { method: 'POST' });
+  } catch (err) {
+    // Si falla, en el peor caso el próximo mensaje continúa la sesión
+    // anterior; no bloquea poder empezar a escribir.
+  }
 });
 
 function delay(ms) {

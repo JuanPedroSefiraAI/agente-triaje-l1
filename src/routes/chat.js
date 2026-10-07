@@ -4,10 +4,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { getAgentReply } = require('../claudeAgent');
 const { createFreshdeskTicket } = require('../freshdeskClient');
 const ticketStore = require('../ticketStore');
+const conversationStore = require('../conversationStore');
+const { resolveSession, clearSessionCookie } = require('../session');
 
 const router = express.Router();
 
 const MAX_MESSAGE_LENGTH = 4000;
+const MAX_HISTORY_MESSAGES = 20; // 10 turnos: suficiente para una ronda de triaje, acota coste/tokens.
 
 // TODO(auth): endpoint en fase demo/pruebas, sin autenticación por API key.
 // Cuando haya clientes reales en producción, cada despliegue necesitará su
@@ -22,6 +25,9 @@ const chatRateLimiter = rateLimit({
 });
 
 router.post('/chat', chatRateLimiter, async (req, res) => {
+  // Nótese: ya no se lee `history` del body. El cliente solo aporta el
+  // mensaje nuevo; el historial real vive en el servidor, indexado por la
+  // sesión de la cookie, para que no se pueda falsificar un turno "assistant".
   const { message, multipleIssues } = req.body || {};
 
   if (!message || typeof message !== 'string' || !message.trim()) {
@@ -33,7 +39,18 @@ router.post('/chat', chatRateLimiter, async (req, res) => {
   }
 
   try {
-    const { reply, escalation } = await getAgentReply(message, { multipleIssues: Boolean(multipleIssues) });
+    const conversationId = await resolveSession(req, res);
+    const history = await conversationStore.getMessages(conversationId, { limit: MAX_HISTORY_MESSAGES });
+
+    const { reply, escalation } = await getAgentReply(message, {
+      multipleIssues: Boolean(multipleIssues),
+      history,
+    });
+
+    await conversationStore.appendMessages(conversationId, [
+      { role: 'user', content: message },
+      { role: 'assistant', content: reply },
+    ]);
 
     if (escalation) {
       const ticketBase = {
@@ -80,6 +97,14 @@ router.post('/chat', chatRateLimiter, async (req, res) => {
     console.error('Error inesperado al llamar al agente.', err);
     res.status(500).json({ error: 'Ocurrió un error inesperado.' });
   }
+});
+
+// Usado por el botón "Nuevo chat": borra la cookie de sesión para que el
+// siguiente mensaje arranque una conversación nueva en vez de seguir
+// acumulando historial sobre la anterior.
+router.post('/chat/new-session', (req, res) => {
+  clearSessionCookie(res);
+  res.status(204).end();
 });
 
 module.exports = router;
