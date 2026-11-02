@@ -4,6 +4,7 @@
 //   npm run eval -- --modelo claude-sonnet-5-5
 //   npm run eval -- --filtro vpn_red      solo una categoría
 //   npm run eval -- --calibrar            solo los casos de eval/revision.csv -> eval/calibracion.csv
+//   npm run eval -- --repeticiones 3      repite la evaluación y da media y desviación por métrica
 const fs = require('node:fs');
 const path = require('node:path');
 const { parseArgs } = require('node:util');
@@ -26,6 +27,7 @@ const { values: args } = parseArgs({
     modelo: { type: 'string' },
     filtro: { type: 'string' },
     calibrar: { type: 'boolean', default: false },
+    repeticiones: { type: 'string', default: '1' },
     forzar: { type: 'boolean', default: false },
   },
 });
@@ -37,10 +39,19 @@ function marcaTemporal(d = new Date()) {
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Errores que no se arreglan reintentando: sin crédito o credenciales inválidas.
+// Al primero se corta la ejecución para no gastar tiempo ni generar basura.
+let errorFatal = null;
+function esFatal(err) {
+  if (err.status === 401 || err.status === 403) return true;
+  return err.status === 400 && /credit balance/i.test(err.message || '');
+}
+
 // 429 = rate limit, 529 = API sobrecargada. El SDK ya reintenta 2 veces;
 // esto cubre ráfagas largas sin perder casos de la ejecución.
 async function conReintentos(fn, etiqueta) {
   for (let intento = 1; ; intento++) {
+    if (errorFatal) throw errorFatal;
     try {
       return await fn();
     } catch (err) {
@@ -57,7 +68,7 @@ async function enParalelo(items, limite, fn) {
   const resultados = new Array(items.length);
   let siguiente = 0;
   async function trabajador() {
-    while (siguiente < items.length) {
+    while (siguiente < items.length && !errorFatal) {
       const i = siguiente++;
       resultados[i] = await fn(items[i], i);
     }
@@ -108,7 +119,8 @@ async function evaluarCaso(caso, modelo) {
       veredicto,
     };
   } catch (err) {
-    return { ...base, error: `${err.status ?? ''} ${err.message}`.trim() };
+    if (esFatal(err) && !errorFatal) errorFatal = err;
+    return { ...base, error: `${err.status ?? ''} ${err.message}`.trim(), abortado: Boolean(errorFatal) };
   }
 }
 
@@ -152,20 +164,47 @@ async function main() {
     process.exit(1);
   }
 
-  const inicio = new Date();
-  const marca = `${marcaTemporal(inicio)}_${modelo.replace(/[^a-z0-9.-]/gi, '-')}${args.calibrar ? '_calibracion' : ''}`;
-  console.log(`Evaluando ${casos.length} casos con ${modelo} (juez: ${MODELO_JUEZ}, concurrencia ${CONCURRENCIA})...`);
+  let repeticiones = Number.parseInt(args.repeticiones, 10);
+  if (!Number.isInteger(repeticiones) || repeticiones < 1) {
+    console.error('--repeticiones debe ser un entero >= 1.');
+    process.exit(1);
+  }
+  if (args.calibrar && repeticiones > 1) {
+    console.warn('--calibrar usa una sola repetición (una respuesta por caso para revisar a mano).');
+    repeticiones = 1;
+  }
 
-  let hechos = 0;
-  const resultados = await enParalelo(casos, CONCURRENCIA, async (caso) => {
-    const r = await evaluarCaso(caso, modelo);
-    hechos++;
-    const estado = r.error ? `ERROR ${r.error}` : `${r.salida.decision}${r.veredicto.correcta ? '' : ' ✗'}`;
-    console.log(`[${hechos}/${casos.length}] ${caso.id}: ${estado}`);
-    return r;
-  });
+  const inicio = new Date();
+  const sufijo = [repeticiones > 1 ? `x${repeticiones}` : '', args.calibrar ? 'calibracion' : ''].filter(Boolean).join('_');
+  const marca = `${marcaTemporal(inicio)}_${modelo.replace(/[^a-z0-9.-]/gi, '-')}${sufijo ? `_${sufijo}` : ''}`;
+  console.log(`Evaluando ${casos.length} casos x ${repeticiones} con ${modelo} (juez: ${MODELO_JUEZ}, concurrencia ${CONCURRENCIA})...`);
+
+  const resultados = [];
+  for (let rep = 1; rep <= repeticiones && !errorFatal; rep++) {
+    if (repeticiones > 1) console.log(`\n--- Repetición ${rep}/${repeticiones} ---`);
+    let hechos = 0;
+    const pasada = await enParalelo(casos, CONCURRENCIA, async (caso) => {
+      const r = { ...(await evaluarCaso(caso, modelo)), repeticion: rep };
+      hechos++;
+      const estado = r.error ? `ERROR ${r.error.slice(0, 120)}` : `${r.salida.decision}${r.veredicto.correcta ? '' : ' ✗'}`;
+      console.log(`[${hechos}/${casos.length}] ${caso.id}: ${estado}`);
+      return r;
+    });
+    resultados.push(...pasada.filter(Boolean));
+  }
 
   fs.mkdirSync(DIR_RESULTADOS, { recursive: true });
+
+  if (errorFatal) {
+    const completados = resultados.filter((r) => !r.error);
+    const rutaParcial = path.join(DIR_RESULTADOS, `${marca}_PARCIAL.jsonl`);
+    fs.writeFileSync(rutaParcial, completados.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf-8');
+    console.error(`\nEjecución cortada: ${errorFatal.status} ${errorFatal.message}`);
+    console.error(`Se guardaron ${completados.length} casos completados en ${path.relative(process.cwd(), rutaParcial)}.`);
+    console.error('No se genera informe ni calibracion.csv para no dar por buena una ejecución incompleta.');
+    process.exit(2);
+  }
+
   const rutaCrudos = path.join(DIR_RESULTADOS, `${marca}.jsonl`);
   fs.writeFileSync(rutaCrudos, resultados.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf-8');
 
