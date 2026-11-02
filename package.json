@@ -5,7 +5,10 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
-    "dev": "node --watch --env-file-if-exists=.env src/server.js"
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "eval": "node --env-file-if-exists=.env eval/run.js",
+    "eval:acuerdo": "node eval/acuerdo.js",
+    "eval:revision": "node eval/exportar-revision.js"
   },
   "license": "ISC",
   "dependencies": {

@@ -2,6 +2,7 @@
 // Uso: node eval/exportar-revision.js
 const fs = require('node:fs');
 const path = require('node:path');
+const { escribirCsv } = require('./csv');
 
 const CASOS = path.join(__dirname, 'casos.jsonl');
 const SALIDA = path.join(__dirname, 'revision.csv');
@@ -24,11 +25,6 @@ const MUESTRA = [
 
 const COLUMNAS = ['id', 'tipo', 'mensaje', 'decision_esperada', 'debe_mencionar', 'no_debe', 'datos_faltantes'];
 
-function celda(valor) {
-  const texto = Array.isArray(valor) ? valor.join(' | ') : String(valor ?? '');
-  return `"${texto.replace(/"/g, '""')}"`;
-}
-
 const casos = new Map(
   fs.readFileSync(CASOS, 'utf-8').split(/\r?\n/).filter(Boolean).map((l) => {
     const c = JSON.parse(l);
@@ -39,9 +35,8 @@ const casos = new Map(
 const filas = MUESTRA.map((id) => {
   const c = casos.get(id);
   if (!c) throw new Error(`Caso no encontrado: ${id}`);
-  return COLUMNAS.map((col) => celda(c[col])).join(',');
+  return c;
 });
 
-// BOM para que Excel abra el UTF-8 con acentos correctamente.
-fs.writeFileSync(SALIDA, '﻿' + [COLUMNAS.join(','), ...filas].join('\r\n') + '\r\n', 'utf-8');
+escribirCsv(SALIDA, COLUMNAS, filas);
 console.log(`${filas.length} casos exportados a ${path.relative(process.cwd(), SALIDA)}`);
