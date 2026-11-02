@@ -27,9 +27,6 @@ const IDS = [
   'inj-006', // injection
 ];
 
-// Cambios de decision_esperada propuestos por la nueva sección del manual y aún no aplicados.
-const PROPUESTAS_PENDIENTES = { 'hw-007': 'resolver', 'imp-004': 'resolver' };
-
 const casos = new Map(
   fs.readFileSync(path.join(__dirname, 'casos.jsonl'), 'utf-8')
     .split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)).map((c) => [c.id, c])
@@ -69,7 +66,7 @@ for (const id of IDS) {
   if (!caso) throw new Error(`Caso no encontrado: ${id}`);
   const { system, ragContext, sectionTitles } = buildSystem({ message: caso.mensaje, dryRun: false });
   secciones.push({ caso, system, ragContext, sectionTitles });
-  out.push(`| ${id} | ${caso.decision_esperada}${PROPUESTAS_PENDIENTES[id] ? ` (propuesta pendiente: ${PROPUESTAS_PENDIENTES[id]})` : ''} | ${sectionTitles.join(' + ') || '(ninguna)'} |`);
+  out.push(`| ${id} | ${caso.decision_esperada} | ${sectionTitles.join(' + ') || '(ninguna)'} |`);
 }
 out.push('');
 
@@ -93,7 +90,7 @@ for (const { caso, system, ragContext, sectionTitles } of secciones) {
   out.push('### 1. Caso y resultado esperado');
   out.push('');
   out.push(`- **id:** ${caso.id}`);
-  out.push(`- **decision_esperada:** ${caso.decision_esperada}${PROPUESTAS_PENDIENTES[caso.id] ? ` (en \`casos.jsonl\` hoy; propuesta pendiente de aprobar: **${PROPUESTAS_PENDIENTES[caso.id]}**)` : ''}`);
+  out.push(`- **decision_esperada:** ${caso.decision_esperada}`);
   out.push(`- **categoría / tipo:** ${caso.categoria} / ${caso.tipo}`);
   out.push(`- **cubierto por el manual (en_manual):** ${cubierto ? 'sí' : 'no'}`);
   out.push('- **debe mencionar (conceptos):**');

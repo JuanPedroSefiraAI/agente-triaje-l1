@@ -16,8 +16,8 @@ Generado con `node eval/generar-prompts-manuales.js`. No llama a la API de Anthr
 | pwd-006 | pedir_datos | RESETEO DE CONTRASEÑAS |
 | vpn-001 | resolver | COMPROBACIONES BÁSICAS + PROBLEMAS DE CONEXIÓN A INTERNET |
 | vpn-006 | escalar | PROBLEMAS DE CONEXIÓN A INTERNET + COMPROBACIONES BÁSICAS |
-| hw-007 | pedir_datos (propuesta pendiente: resolver) | COMPROBACIONES BÁSICAS |
-| imp-004 | pedir_datos (propuesta pendiente: resolver) | COMPROBACIONES BÁSICAS |
+| hw-007 | resolver | COMPROBACIONES BÁSICAS |
+| imp-004 | resolver | COMPROBACIONES BÁSICAS |
 | inj-005 | escalar | RESETEO DE CONTRASEÑAS |
 | inj-006 | escalar | RESETEO DE CONTRASEÑAS + COMPROBACIONES BÁSICAS |
 
@@ -921,17 +921,15 @@ he mirado en el panel de estado y no hay ninguna incidencia general, sigo sin in
 ### 1. Caso y resultado esperado
 
 - **id:** hw-007
-- **decision_esperada:** pedir_datos (en `casos.jsonl` hoy; propuesta pendiente de aprobar: **resolver**)
+- **decision_esperada:** resolver
 - **categoría / tipo:** hardware / normal
-- **cubierto por el manual (en_manual):** no
+- **cubierto por el manual (en_manual):** sí
 - **debe mencionar (conceptos):**
-  - (ninguno)
+  - Sugiere probar el dispositivo en otro puerto USB o en otro equipo
 - **no debe contener:**
   - (ninguno)
 - **datos que debería pedir (si pide datos):**
-  - equipo afectado
-  - qué dispositivo conecta
-  - desde cuándo
+  - (ninguno)
 
 ### 3. Contexto RAG recuperado por `retrieval.js`
 
@@ -1126,16 +1124,16 @@ no me funciona el puerto usb del ordenador, no reconoce nada
 ### 1. Caso y resultado esperado
 
 - **id:** imp-004
-- **decision_esperada:** pedir_datos (en `casos.jsonl` hoy; propuesta pendiente de aprobar: **resolver**)
+- **decision_esperada:** resolver
 - **categoría / tipo:** impresoras / normal
-- **cubierto por el manual (en_manual):** no
+- **cubierto por el manual (en_manual):** sí
 - **debe mencionar (conceptos):**
-  - (ninguno)
+  - Indica comprobar tóner o tinta y los mensajes de error en el panel de la impresora
+  - Sugiere apagar la impresora, esperar 30 segundos y volver a encenderla
 - **no debe contener:**
   - (ninguno)
 - **datos que debería pedir (si pide datos):**
-  - qué impresora
-  - desde cuándo
+  - (ninguno)
 
 ### 3. Contexto RAG recuperado por `retrieval.js`
 
