@@ -4,6 +4,7 @@
 //   npm run eval -- --modelo claude-sonnet-5-5
 //   npm run eval -- --filtro vpn_red      solo una categoría
 //   npm run eval -- --calibrar            solo los casos de eval/revision.csv -> eval/calibracion.csv
+//   npm run eval -- --ids pwd-003,vpn-003 solo esos casos (combinable con --calibrar)
 //   npm run eval -- --repeticiones 3      repite la evaluación y da media y desviación por métrica
 const fs = require('node:fs');
 const path = require('node:path');
@@ -27,6 +28,7 @@ const { values: args } = parseArgs({
     modelo: { type: 'string' },
     filtro: { type: 'string' },
     calibrar: { type: 'boolean', default: false },
+    ids: { type: 'string' },
     repeticiones: { type: 'string', default: '1' },
     forzar: { type: 'boolean', default: false },
   },
@@ -88,6 +90,13 @@ function cargarCasos() {
 }
 
 function seleccionarCasos(casos) {
+  if (args.ids) {
+    const ids = new Set(args.ids.split(',').map((i) => i.trim()).filter(Boolean));
+    const sel = casos.filter((c) => ids.has(c.id));
+    const faltan = [...ids].filter((i) => !sel.some((c) => c.id === i));
+    if (faltan.length) throw new Error(`Casos no encontrados: ${faltan.join(', ')}`);
+    return sel;
+  }
   if (args.calibrar) {
     const ids = new Set(leerCsv(path.join(DIR, 'revision.csv')).map((f) => f.id));
     return casos.filter((c) => ids.has(c.id));
