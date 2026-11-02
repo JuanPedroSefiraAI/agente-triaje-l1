@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
-const { getAgentReply } = require('../claudeAgent');
+const { runAgent } = require('../claudeAgent');
 const { createFreshdeskTicket } = require('../freshdeskClient');
 const ticketStore = require('../ticketStore');
 const conversationStore = require('../conversationStore');
@@ -42,9 +42,11 @@ router.post('/chat', chatRateLimiter, async (req, res) => {
     const conversationId = await resolveSession(req, res);
     const history = await conversationStore.getMessages(conversationId, { limit: MAX_HISTORY_MESSAGES });
 
-    const { reply, escalation } = await getAgentReply(message, {
+    const { respuesta: reply, escalation } = await runAgent({
+      message,
       multipleIssues: Boolean(multipleIssues),
       history,
+      dryRun: false,
     });
 
     await conversationStore.appendMessages(conversationId, [

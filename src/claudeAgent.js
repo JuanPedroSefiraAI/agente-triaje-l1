@@ -16,13 +16,15 @@ function buildRagContext(message) {
     ? sections.map((s) => `### ${s.title}\n${s.content}`).join('\n\n')
     : 'No se encontró ninguna sección del manual de procedimientos relacionada con esta consulta.';
 
-  return `## CONTEXTO OFICIAL (extraído del manual interno de procedimientos)
+  const context = `## CONTEXTO OFICIAL (extraído del manual interno de procedimientos)
 ${contextBody}
 
 ## INSTRUCCIONES SOBRE EL USO DEL CONTEXTO OFICIAL
 - Responde ÚNICAMENTE con base en el CONTEXTO OFICIAL de arriba. No completes huecos con conocimiento general ni supongas procedimientos, URLs o plazos que no estén ahí.
 - Si el contexto indica que no se encontró información relevante, o si no cubre lo que pregunta el usuario, no inventes un procedimiento, política, URL o plazo que no esté documentado aquí. Esto no te impide hacer el triaje básico ni proponer comprobaciones genéricas de sentido común (ver "CUÁNDO ESCALAR" del system prompt); solo evita que inventes una solución específica no respaldada por este contexto oficial.
 - No mezcles el contexto oficial con suposiciones "razonables": si no está en el contexto, no lo afirmes.`;
+
+  return { context, sectionTitles: found ? sections.map((s) => s.title) : [] };
 }
 
 // Se antepone cuando el front-end detecta que el mensaje dispara el trigger
@@ -71,23 +73,82 @@ const ESCALATION_TOOL = {
   },
 };
 
-async function getAgentReply(message, { multipleIssues = false, history = [] } = {}) {
+// Solo se usa en modo evaluación (dryRun: true, ver eval/). No se añade en
+// producción para no alterar el comportamiento ni el coste/latencia del
+// agente real: la clasificación es metadata para medir, no para servir.
+const CLASSIFICATION_TOOL_NOTE = `## HERRAMIENTA DE CLASIFICACIÓN (solo evaluación interna)
+Además de tu respuesta y de la herramienta de escalado si aplica, invoca
+SIEMPRE la herramienta "clasificar_triaje" con tu clasificación interna de
+este turno. Es solo para métricas internas, no afecta a lo que ve el
+usuario.`;
+
+const CLASSIFICATION_TOOL = {
+  name: 'clasificar_triaje',
+  description:
+    'Reporta la clasificación interna de este turno (decisión, categoría, prioridad) para métricas de evaluación. ' +
+    'Llámala siempre en modo evaluación, junto con "escalar_a_nivel2" si también la usas.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      decision: {
+        type: 'string',
+        enum: ['resolver', 'escalar', 'pedir_datos'],
+        description:
+          '"resolver" si ya diste la solución, "escalar" si invocaste escalar_a_nivel2, ' +
+          '"pedir_datos" si tu respuesta es la ronda de triaje (pides datos) sin resolver ni escalar todavía.',
+      },
+      categoria: {
+        type: 'string',
+        description:
+          'Categoría breve de la incidencia, p.ej.: contraseñas, microsoft365, vpn_red, impresoras, hardware, permisos_accesos, software_licencias, altas_bajas.',
+      },
+      prioridad: {
+        type: 'string',
+        enum: ['baja', 'media', 'alta', 'critica'],
+      },
+    },
+    required: ['decision', 'categoria', 'prioridad'],
+  },
+};
+
+const PRIORITY_NUMBER_TO_LABEL = { 1: 'baja', 2: 'media', 3: 'alta', 4: 'critica' };
+
+/**
+ * Función pura del agente de triaje L1: construye el prompt (system +
+ * contexto RAG + historial + mensaje) y llama a la API de Claude. No hace
+ * I/O propia (ni Freshdesk ni Supabase): esos efectos los decide quien la
+ * llama (ver src/routes/chat.js) según el flag `dryRun`.
+ *
+ * `dryRun: true` añade la herramienta de clasificación interna (ver
+ * CLASSIFICATION_TOOL) para obtener decision/categoria/prioridad de forma
+ * fiable en evaluación. En producción (`dryRun: false`, por defecto) nunca
+ * se añade, para no tocar el comportamiento ni el coste del agente real.
+ */
+async function runAgent({ message, history = [], multipleIssues = false, dryRun = false, model } = {}) {
+  const startedAt = Date.now();
+  const { context: ragContext, sectionTitles } = buildRagContext(message);
+
   const system = [
     systemPrompt,
     multipleIssues ? MULTIPLE_ISSUES_NOTE : null,
     ESCALATION_TOOL_NOTE,
-    buildRagContext(message),
+    dryRun ? CLASSIFICATION_TOOL_NOTE : null,
+    ragContext,
   ]
     .filter(Boolean)
     .join('\n\n');
 
+  const tools = dryRun ? [ESCALATION_TOOL, CLASSIFICATION_TOOL] : [ESCALATION_TOOL];
+
   const response = await client.messages.create({
-    model: MODEL,
+    model: model || MODEL,
     max_tokens: 1024,
     system,
-    tools: [ESCALATION_TOOL],
+    tools,
     messages: [...history, { role: 'user', content: message }],
   });
+
+  const latencia_ms = Date.now() - startedAt;
 
   if (response.stop_reason === 'refusal') {
     throw new Error('La consulta fue rechazada por los filtros de seguridad del modelo.');
@@ -96,6 +157,9 @@ async function getAgentReply(message, { multipleIssues = false, history = [] } =
   const textBlock = response.content.find((block) => block.type === 'text');
   const escalationBlock = response.content.find(
     (block) => block.type === 'tool_use' && block.name === 'escalar_a_nivel2'
+  );
+  const classificationBlock = response.content.find(
+    (block) => block.type === 'tool_use' && block.name === 'clasificar_triaje'
   );
 
   const escalation = escalationBlock
@@ -106,7 +170,32 @@ async function getAgentReply(message, { multipleIssues = false, history = [] } =
       }
     : null;
 
-  return { reply: textBlock ? textBlock.text : '', escalation };
+  const decision = classificationBlock
+    ? classificationBlock.input.decision
+    : escalation
+      ? 'escalar'
+      : 'resolver';
+
+  const categoria = classificationBlock ? classificationBlock.input.categoria : null;
+
+  const prioridad = classificationBlock
+    ? classificationBlock.input.prioridad
+    : escalation
+      ? PRIORITY_NUMBER_TO_LABEL[escalation.priority] || 'media'
+      : null;
+
+  return {
+    decision,
+    categoria,
+    prioridad,
+    respuesta: textBlock ? textBlock.text : '',
+    secciones_manual_usadas: sectionTitles,
+    tokens_entrada: response.usage?.input_tokens ?? 0,
+    tokens_salida: response.usage?.output_tokens ?? 0,
+    latencia_ms,
+    escalation,
+    dryRun,
+  };
 }
 
-module.exports = { getAgentReply };
+module.exports = { runAgent };
