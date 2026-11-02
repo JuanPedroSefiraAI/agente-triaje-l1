@@ -94,8 +94,9 @@ const CLASSIFICATION_TOOL = {
         type: 'string',
         enum: ['resolver', 'escalar', 'pedir_datos'],
         description:
-          '"resolver" si ya diste la solución, "escalar" si invocaste escalar_a_nivel2, ' +
-          '"pedir_datos" si tu respuesta es la ronda de triaje (pides datos) sin resolver ni escalar todavía.',
+          '"resolver" si das pasos de solución o la respuesta a la consulta, aunque termines preguntando si ha funcionado; ' +
+          '"escalar" si invocaste escalar_a_nivel2; ' +
+          '"pedir_datos" si tu respuesta consiste en preguntar datos para acotar el problema y todavía no das una solución ni escalas.',
       },
       categoria: {
         type: 'string',
