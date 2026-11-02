@@ -28,3 +28,27 @@ Si la VPN no conecta:
 1. Verificar que el usuario tiene el certificado actualizado (caduca cada 6 meses).
 2. Si el certificado está caducado, debe solicitarlo en intranet.empresa-cliente.com/certificados.
 3. IT no puede generar certificados manualmente por política de seguridad.
+
+## COMPROBACIONES BÁSICAS
+Pruebas de sentido común que el agente de Nivel 1 puede pedir al usuario antes de escalar. No requieren permisos ni cambios de configuración. Síntomas que cubre: sin internet, sin conexión wifi, el ordenador o portátil no enciende ni arranca, se apaga solo, va lento, pantalla o monitor sin imagen, ratón o teclado que no responde, auricular sin sonido, webcam o disco externo que no se reconoce, la impresora no imprime, imprime en blanco o se atasca el papel.
+
+Red e internet (wifi o cable):
+1. Comprobar que el cable de red está bien conectado en los dos extremos, o que el wifi está activado en el equipo.
+2. Desactivar y volver a activar el wifi, o desconectar y volver a conectar el cable de red.
+3. Reiniciar el ordenador.
+4. Probar con otro dispositivo (móvil u otro equipo) en la misma red para saber si el fallo es del equipo o de la red.
+5. No reiniciar el router (ver PROBLEMAS DE CONEXIÓN A INTERNET).
+
+Ordenador, portátil y periféricos (monitor, pantalla, ratón, teclado, auricular, webcam, disco externo, puerto USB):
+1. Comprobar que el equipo está enchufado y que el cargador, el cable de alimentación y las conexiones están bien puestos; probar otra toma de corriente.
+2. Apagar el equipo por completo y volver a encenderlo.
+3. Desconectar el periférico y conectarlo en otro puerto USB o en otro equipo para saber si falla el periférico o el equipo.
+4. Revisar los cables y adaptadores del periférico.
+
+Impresoras:
+1. Comprobar que la impresora está encendida, con papel y tóner o tinta, y sin mensajes de error en su panel.
+2. Revisar el cable de red o la conexión wifi de la impresora.
+3. Apagar la impresora, esperar 30 segundos y volver a encenderla.
+4. Probar a imprimir desde otro equipo para saber si el fallo es de la impresora o del ordenador.
+
+Si tras estas comprobaciones el problema persiste, crear ticket con lo que se ha probado y escalar a Nivel 2. Los daños físicos evidentes (pantalla rota, golpe, ruido anormal, humo o calor excesivo) no se tratan con estas comprobaciones: se escalan directamente.
