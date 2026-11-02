@@ -114,6 +114,24 @@ const CLASSIFICATION_TOOL = {
 
 const PRIORITY_NUMBER_TO_LABEL = { 1: 'baja', 2: 'media', 3: 'alta', 4: 'critica' };
 
+// Construye el system prompt exactamente como se envía a la API. Se exporta
+// para poder inspeccionarlo (eval/generar-prompts-manuales.js) sin llamar a Claude.
+function buildSystem({ message, multipleIssues = false, dryRun = false }) {
+  const { context: ragContext, sectionTitles } = buildRagContext(message);
+
+  const system = [
+    systemPrompt,
+    multipleIssues ? MULTIPLE_ISSUES_NOTE : null,
+    ESCALATION_TOOL_NOTE,
+    dryRun ? CLASSIFICATION_TOOL_NOTE : null,
+    ragContext,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  return { system, ragContext, sectionTitles };
+}
+
 /**
  * Función pura del agente de triaje L1: construye el prompt (system +
  * contexto RAG + historial + mensaje) y llama a la API de Claude. No hace
@@ -127,17 +145,7 @@ const PRIORITY_NUMBER_TO_LABEL = { 1: 'baja', 2: 'media', 3: 'alta', 4: 'critica
  */
 async function runAgent({ message, history = [], multipleIssues = false, dryRun = false, model } = {}) {
   const startedAt = Date.now();
-  const { context: ragContext, sectionTitles } = buildRagContext(message);
-
-  const system = [
-    systemPrompt,
-    multipleIssues ? MULTIPLE_ISSUES_NOTE : null,
-    ESCALATION_TOOL_NOTE,
-    dryRun ? CLASSIFICATION_TOOL_NOTE : null,
-    ragContext,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  const { system, sectionTitles } = buildSystem({ message, multipleIssues, dryRun });
 
   const tools = dryRun ? [ESCALATION_TOOL, CLASSIFICATION_TOOL] : [ESCALATION_TOOL];
 
@@ -199,4 +207,4 @@ async function runAgent({ message, history = [], multipleIssues = false, dryRun 
   };
 }
 
-module.exports = { runAgent };
+module.exports = { runAgent, buildSystem };
