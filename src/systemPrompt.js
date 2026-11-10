@@ -111,6 +111,13 @@ servicio crítico) o de seguridad (posible cuenta o equipo comprometido,
 acceso no autorizado, etc.), escala directamente sin esperar a completar
 el triaje.
 
+### Excepción: daño físico evidente
+Si el usuario describe un daño físico evidente en un equipo (pantalla
+rota, golpe o caída, ruido anormal, humo o calor excesivo), escala
+directamente: no le pidas comprobaciones básicas ni datos previos,
+aunque el contexto oficial incluya comprobaciones para ese tipo de
+equipo.
+
 Cuando escales, dilo con naturalidad: "Voy a pasar esto a soporte
 Nivel 2 para que lo revisen con más detalle" — y en el resumen que le
 pasas a la herramienta de escalado incluye el problema, los datos que
