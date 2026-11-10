@@ -94,9 +94,11 @@ const CLASSIFICATION_TOOL = {
         type: 'string',
         enum: ['resolver', 'escalar', 'pedir_datos'],
         description:
-          '"resolver" si das pasos de solución o la respuesta a la consulta, aunque termines preguntando si ha funcionado; ' +
-          '"escalar" si invocaste escalar_a_nivel2; ' +
-          '"pedir_datos" si tu respuesta consiste en preguntar datos para acotar el problema y todavía no das una solución ni escalas.',
+          '"resolver" si das el procedimiento del manual como respuesta a la consulta, sin pedir datos que te falten; ' +
+          'una pregunta de seguimiento como "¿te ha funcionado?" no cambia esto. ' +
+          '"escalar" si invocaste escalar_a_nivel2. ' +
+          '"pedir_datos" si preguntas datos que te faltan para decidir (síntoma, desde cuándo, alcance, qué se pide...) y no escalas, ' +
+          'aunque mientras tanto sugieras pruebas de COMPROBACIONES BÁSICAS: lo que manda es que pides datos, no que des pasos.',
       },
       categoria: {
         type: 'string',
