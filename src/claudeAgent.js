@@ -21,7 +21,7 @@ ${contextBody}
 
 ## INSTRUCCIONES SOBRE EL USO DEL CONTEXTO OFICIAL
 - Responde ÚNICAMENTE con base en el CONTEXTO OFICIAL de arriba. No completes huecos con conocimiento general ni supongas procedimientos, URLs o plazos que no estén ahí.
-- Si el contexto indica que no se encontró información relevante, o si no cubre lo que pregunta el usuario, no inventes un procedimiento, política, URL o plazo que no esté documentado aquí. Esto no te impide hacer el triaje básico ni proponer comprobaciones genéricas de sentido común (ver "CUÁNDO ESCALAR" del system prompt); solo evita que inventes una solución específica no respaldada por este contexto oficial.
+- Si el contexto indica que no se encontró información relevante, o si no cubre lo que pregunta el usuario, no inventes un procedimiento, política, URL o plazo que no esté documentado aquí. Esto no te impide hacer el triaje básico (preguntar datos) ni proponer las pruebas de la sección "COMPROBACIONES BÁSICAS" si aparece en este contexto (ver "CUÁNDO ESCALAR" del system prompt); no añadas ningún otro consejo, aunque parezca razonable.
 - No mezcles el contexto oficial con suposiciones "razonables": si no está en el contexto, no lo afirmes.`;
 
   return { context, sectionTitles: found ? sections.map((s) => s.title) : [] };
